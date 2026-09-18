@@ -224,6 +224,12 @@ export class KanbanPanel {
           if (e.affectsConfiguration('kanban-markdown.filenamePattern')) {
             this._promptFilenamePatternMigration()
           }
+          // Handle live zoom updates
+          if (e.affectsConfiguration('kanban-markdown.zoomLevel')) {
+            const config = vscode.workspace.getConfiguration('kanban-markdown')
+            const newZoom = config.get<number>('zoomLevel', 1.0)
+            this._panel.webview.postMessage({ type: 'updateZoom', value: newZoom })
+          }
           if (e.affectsConfiguration('kanban-markdown.language')) {
             this._promptColumnLanguageMigration()
           }
@@ -313,15 +319,27 @@ export class KanbanPanel {
     )
 
     const nonce = this._getNonce()
+    
+    // Fetch the zoom level from the workspace configuration
+    const config = vscode.workspace.getConfiguration('kanban-markdown')
+    const zoomLevel = config.get<number>('zoomLevel', 1.0)
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src ${webview.cspSource} 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';">
   <link href="${styleUri}" rel="stylesheet">
   <title>Kanban Board</title>
+  <style>
+    :root {
+      --kanban-zoom: ${zoomLevel};
+    }
+    #root {
+      zoom: var(--kanban-zoom);
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>

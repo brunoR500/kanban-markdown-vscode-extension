@@ -31,6 +31,21 @@ function App(): React.JSX.Element {
   const [createFeatureOpen, setCreateFeatureOpen] = useState(false)
   const [createFeatureStatus, setCreateFeatureStatus] = useState<FeatureStatus>('backlog')
 
+  // Listen for live zoom level changes from the extension host
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data
+      if (message.type === 'updateZoom') {
+        document.documentElement.style.setProperty('--kanban-zoom', message.value.toString())
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    
+    // Cleanup listener on unmount
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
   // Editor state
   const contentVersionRef = useRef(0)
   const [editingFeature, setEditingFeature] = useState<{
